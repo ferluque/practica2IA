@@ -6,10 +6,7 @@
 #include <list>
 #include <iostream>
 
-// ostream& operator<<(ostream& out, const ubicacion& x) {
-//   out << "Fila / Col / Orientacion: " << x.f << " / " << x.c << " / " << x.brujula << endl;
-//   return out;
-// }
+ostream& operator<<(ostream& out, const ubicacion& x);
 
 struct stateN0 {
   ubicacion jugador;
@@ -22,13 +19,25 @@ struct stateN0 {
   };
 };
 
-// ostream& operator<<(ostream& out, const stateN0& x) {
-//   out << "Ubicación jugador:" << endl;
-//   out << x.jugador;
-//   out << "Ubicación sonámbulo:" << endl;
-//   out << x.sonambulo;
-//   return out;
-// };
+struct nodeN0 {
+  stateN0 st;
+  list<Action> secuencia;
+  bool operator==(const nodeN0& n) const {
+    return (st==n.st);
+  }
+  bool operator<(const nodeN0& n) const {
+    if (st.jugador.f < n.st.jugador.f)
+      return true;
+    else if(st.jugador.f == n.st.jugador.f and st.jugador.c<n.st.jugador.c)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula < n.st.jugador.brujula)
+      return true;
+    else
+      return false;
+  }
+};
+
+ostream& operator<<(ostream& out, const stateN0& x);
 
 class ComportamientoJugador : public Comportamiento {
   public:
@@ -52,13 +61,17 @@ class ComportamientoJugador : public Comportamiento {
     bool hayPlan;
     stateN0 current_state;
     ubicacion goal;
+    void VisualizaPlan(const stateN0& st, const list<Action>& plan);
 };
 
-bool AnchuraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
+list<Action> AnchuraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
 bool Find(const list<stateN0>& lista, const stateN0& obj);
+bool Find(const list<nodeN0>& lista, const stateN0& obj);
 
 bool CasillaTransitable(const ubicacion& x, const vector<vector<unsigned char>>& mapa);
 ubicacion NextCasilla(const ubicacion& pos);
 stateN0 apply(Action action, const stateN0& current_state, const vector<vector<unsigned char>>& mapa);
+
+void AnularMatriz(vector<vector<unsigned char>>& matriz);
 
 #endif
