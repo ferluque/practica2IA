@@ -31,6 +31,12 @@ Action ComportamientoJugador::think(Sensores sensores)
 			case 0:
 				plan = AnchuraSoloJugador(current_state, goal, mapaResultado);
 				break;
+			case 1:
+				plan = AnchuraSonambulo(current_state, goal, mapaResultado, casillasTerreno);
+				break;
+			case 2:
+				plan = DijkstraSoloJugador(current_state, goal, mapaResultado);
+				break;
 			}
 			if (plan.size() > 0)
 			{
@@ -51,6 +57,273 @@ Action ComportamientoJugador::think(Sensores sensores)
 		}
 	}
 	return accion;
+}
+
+
+list<Action> AnchuraSonambulo(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa, 
+ const vector<vector<pair<int,int>>>& casillasTerreno) {
+	nodeN1 current_node;
+	list<nodeN1> frontier;
+	set<nodeN1> explored;
+	list<Action> plan;
+	current_node.st = inicio;
+	frontier.push_back(current_node);
+	bool SolutionFound = (current_node.st.sonambulo.f == final.f and current_node.st.sonambulo.c == final.c);
+	bool print = false;
+	while (!frontier.empty() and !SolutionFound)
+	{
+		frontier.pop_front();
+		explored.insert(current_node);
+		if (print){
+			cout << "Nodo actual" << endl;
+			cout << current_node.st;
+		}
+		// Hijo actFORWARD
+		nodeN1 childForward = current_node;
+		childForward.st = apply(actFORWARD, current_node.st, mapa);
+		if (childForward.st.sonambulo.f == final.f and childForward.st.sonambulo.c == final.c)
+		{
+			childForward.secuencia.push_back(actFORWARD);
+			current_node = childForward;
+			SolutionFound = true;
+		}
+		else if (explored.find(childForward) == explored.end())
+		{
+			childForward.secuencia.push_back(actFORWARD);
+			frontier.push_back(childForward);
+		}
+		if (!SolutionFound)
+		{
+			nodeN1 childTurnl = current_node;
+			childTurnl.st = apply(actTURN_L, current_node.st, mapa);
+			if (explored.find(childTurnl) == explored.end())
+			{
+				childTurnl.secuencia.push_back(actTURN_L);
+				frontier.push_back(childTurnl);
+			}
+			nodeN1 childTurnr = current_node;
+			childTurnr.st = apply(actTURN_R, current_node.st, mapa);
+			if (explored.find(childTurnr) == explored.end())
+			{
+				childTurnr.secuencia.push_back(actTURN_R);
+				frontier.push_back(childTurnr);
+			}
+			if (EsVisible(current_node.st, casillasTerreno)) {
+				nodeN1 childTurnSForward = current_node;
+				childTurnSForward.st = apply(actSON_FORWARD, current_node.st, mapa);
+				if (explored.find(childTurnSForward) == explored.end())
+				{
+					childTurnSForward.secuencia.push_back(actSON_FORWARD);
+					frontier.push_back(childTurnSForward);
+				}
+				nodeN1 childTurnSR = current_node;
+				childTurnSR.st = apply(actSON_TURN_SR, current_node.st, mapa);
+				if (explored.find(childTurnSR) == explored.end())
+				{
+					childTurnSR.secuencia.push_back(actTURN_SR);
+					frontier.push_back(childTurnSR);
+				}
+				nodeN1 childTurnSL = current_node;
+				childTurnSL.st = apply(actSON_TURN_SL, current_node.st, mapa);
+				if (explored.find(childTurnSL) == explored.end())
+				{
+					childTurnSL.secuencia.push_back(actTURN_SL);
+					frontier.push_back(childTurnSL);
+				}
+			}
+		}
+
+		if (print) {
+			cout << "Lista frontier: " << endl;
+			for (auto it=frontier.begin(); it!=frontier.end(); ++it) {
+				cout << it->st;
+			}
+
+			cout << "===================================" << endl;
+			break;
+		}
+
+		if (!SolutionFound and !frontier.empty())
+		{
+			current_node = frontier.front();
+			while (!frontier.empty() and explored.find(current_node) != explored.end())
+			{
+				frontier.pop_front();
+				current_node = frontier.front();
+			}
+		}
+	}
+	if (SolutionFound)
+		plan = current_node.secuencia;
+	return plan;
+
+}
+
+bool EsVisible(const stateN0& st, const vector<vector<pair<int,int>>>& casillasTerreno) {
+	vector<pair<int,int>> v(16);
+	vector<pair<int,int>> casillas(casillasTerreno[static_cast<int>(st.jugador.brujula)]);
+
+	bool found = false; 
+	for (int i=0; i<16 and !found; i++) {
+		int f = st.jugador.f+casillas[i].first, c = st.jugador.c+casillas[i].second;
+		if (f==st.sonambulo.f and c==st.sonambulo.c)
+			found = true;
+	}
+	return found;
+}
+void print_queue(priority_queue<nodeN2> q)
+{
+  while (!q.empty())
+  {
+    cout << q.top().st.jugador << " Distancia: " << q.top().distancia << endl;
+    q.pop();
+  }
+  cout << endl;
+}
+
+list<Action> DijkstraSoloJugador(const stateN0 &inicio, const ubicacion &final, const vector<vector<unsigned char>> &mapa)
+{
+	list<Action> plan;
+	list<nodeN2> cerrados;
+	priority_queue<nodeN2> abiertos;
+	vector<vector<int>> distancias(mapa.size());
+	for (int i = 0; i < mapa.size(); i++)
+	{
+		distancias[i].resize(mapa.size());
+	}
+	MatrizAlInfinito(distancias);
+	nodeN2 actual;
+	actual.distancia = 0;
+	actual.st = inicio;
+	actual.tieneBikini = false;
+	actual.tieneZapatillas = false;
+	distancias[actual.st.jugador.f][actual.st.jugador.c] = actual.distancia;
+	bool fin = (actual.st.jugador.f == final.f and actual.st.jugador.c == final.c);
+	abiertos.push(actual);
+	int cont = 0;
+	bool print = false;
+	while (!fin)
+	{
+		++cont;
+		actual = abiertos.top();
+		if (print){
+			cout << "Nodo actual" << endl;
+			cout << actual.st.jugador << " Distancia: " << actual.distancia << endl;
+		}
+		if (mapa[actual.st.jugador.f][actual.st.jugador.c] == 'K')
+			actual.tieneBikini = true;
+		if (mapa[actual.st.jugador.f][actual.st.jugador.c] == 'D')
+			actual.tieneZapatillas = true;
+		abiertos.pop();
+		cerrados.push_back(actual);
+		fin = (actual.st.jugador.f == final.f and actual.st.jugador.c == final.c);
+		if (fin) {
+			plan = actual.secuencia;
+		}
+		else 
+		{
+			// Hijo actFORWARD
+			nodeN2 childForward = actual;
+			childForward.st = apply(actFORWARD, actual.st, mapa);
+			if (!Find(cerrados, childForward.st))
+			{
+				childForward.distancia += Distancia(actual, actFORWARD, mapa);
+				// cout << "Distancia hijo childForward: " << childForward.distancia << endl;
+				childForward.secuencia.push_back(actFORWARD);
+				abiertos.push(childForward);
+			}
+			// Hijo actTURNL
+			nodeN2 childTurnL = actual;
+			childTurnL.st = apply(actTURN_L, actual.st, mapa);
+			if (!Find(cerrados, childTurnL.st))
+			{
+				childTurnL.distancia += Distancia(actual, actTURN_L, mapa);
+				// cout << "Distancia hijo childTurnL: " << childTurnL.distancia << endl;
+				childTurnL.secuencia.push_back(actTURN_L);
+				abiertos.push(childTurnL);
+			}
+			// Hijo actTURNR
+			nodeN2 childTurnR = actual;
+			childTurnR.st = apply(actTURN_R, actual.st, mapa);
+			if (!Find(cerrados, childTurnR.st))
+			{
+				childTurnR.distancia += Distancia(actual, actTURN_R, mapa);
+				// cout << "Distancia hijo childTurnR: " << childTurnR.distancia << endl;
+				childTurnR.secuencia.push_back(actTURN_R);
+				abiertos.push(childTurnR);
+			}
+		}
+		if (print){
+			cout << endl << "Cola abiertos " << endl;
+			print_queue(abiertos);
+			cout << "====================================" << endl << endl;
+		}
+		if (cont == 3 and print) {
+			break;
+		}
+	}
+	return plan;
+}
+
+int Distancia(const nodeN2 &origen, Action accion, const vector<vector<unsigned char>> &mapa)
+{
+	int distancia = 0;
+	unsigned char casilla = mapa[origen.st.jugador.f][origen.st.jugador.c];
+	switch (accion)
+	{
+	case actFORWARD:
+		switch (casilla)
+		{
+		case 'A':
+			distancia = (origen.tieneBikini) ? 10 : 100;
+			break;
+		case 'B':
+			distancia = (origen.tieneZapatillas) ? 15 : 50;
+			break;
+		case 'T':
+			distancia = 2;
+			break;
+		default:
+			distancia = 1;
+			break;
+		}
+		break;
+	case actTURN_L:
+		switch (casilla)
+		{
+		case 'A':
+			distancia = (origen.tieneBikini) ? 5 : 25;
+			break;
+		case 'B':
+			distancia = (origen.tieneZapatillas) ? 1 : 25;
+			break;
+		case 'T':
+			distancia = 2;
+			break;
+		default:
+			distancia = 1;
+			break;
+		}
+		break;
+	case actTURN_R:
+		switch (casilla)
+		{
+		case 'A':
+			distancia = (origen.tieneBikini) ? 5 : 25;
+			break;
+		case 'B':
+			distancia = (origen.tieneZapatillas) ? 1 : 25;
+			break;
+		case 'T':
+			distancia = 2;
+			break;
+		default:
+			distancia = 1;
+			break;
+		}
+		break;
+	}
+	return distancia;
 }
 
 list<Action> AnchuraSoloJugador(const stateN0 &inicio, const ubicacion &final, const vector<vector<unsigned char>> &mapa)
@@ -113,6 +386,13 @@ list<Action> AnchuraSoloJugador(const stateN0 &inicio, const ubicacion &final, c
 	return plan;
 }
 
+void MatrizAlInfinito(vector<vector<int>> &matriz)
+{
+	for (int i = 0; i < matriz.size(); i++)
+		for (int j = 0; j < matriz[0].size(); j++)
+			matriz[i][j] = INT32_MAX;
+}
+
 void AnularMatriz(vector<vector<unsigned char>> &matriz)
 {
 	for (int i = 0; i < matriz.size(); i++)
@@ -163,7 +443,7 @@ stateN0 apply(Action action, const stateN0 &current_state, const vector<vector<u
 	case actFORWARD:
 		sigUbicacion = NextCasilla(current_state.jugador);
 		if (CasillaTransitable(sigUbicacion, mapa) and
-			!(sigUbicacion.f == current_state.sonambulo.c and sigUbicacion.c == current_state.sonambulo.c))
+			!(sigUbicacion.f == current_state.sonambulo.f and sigUbicacion.c == current_state.sonambulo.c))
 		{
 			stResult.jugador = sigUbicacion;
 		}
@@ -174,6 +454,18 @@ stateN0 apply(Action action, const stateN0 &current_state, const vector<vector<u
 		break;
 	case actTURN_R:
 		stResult.jugador.brujula = static_cast<Orientacion>((stResult.jugador.brujula + 2) % 8);
+		break;
+	case actSON_FORWARD:
+		sigUbicacion = NextCasilla(current_state.sonambulo);
+		if (CasillaTransitable(sigUbicacion, mapa) and 
+			!(sigUbicacion.f == current_state.jugador.f and sigUbicacion.c == current_state.jugador.c))
+			stResult.sonambulo = sigUbicacion;
+		break;
+	case actSON_TURN_SL:
+		stResult.sonambulo.brujula = static_cast<Orientacion>((stResult.sonambulo.brujula+7)%8);
+		break;
+	case actSON_TURN_SR:
+		stResult.sonambulo.brujula = static_cast<Orientacion>((stResult.sonambulo.brujula+1)%8);
 		break;
 	}
 	return stResult;
@@ -223,6 +515,14 @@ ubicacion NextCasilla(const ubicacion &pos)
 	return next;
 }
 
+bool Find(const list<nodeN2> &lista, const stateN0 &obj)
+{
+	auto it = lista.begin();
+	while (it != lista.end() and !(it->st == obj))
+		++it;
+	return (!(it == lista.end()));
+}
+
 bool Find(const list<stateN0> &lista, const stateN0 &obj)
 {
 	auto it = lista.begin();
@@ -230,6 +530,7 @@ bool Find(const list<stateN0> &lista, const stateN0 &obj)
 		++it;
 	return (!(it == lista.end()));
 }
+
 bool Find(const list<nodeN0> &lista, const stateN0 &obj)
 {
 	auto it = lista.begin();
