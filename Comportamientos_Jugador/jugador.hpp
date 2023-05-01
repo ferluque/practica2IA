@@ -58,7 +58,7 @@ struct nodeN1 {
       st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.f < n.st.sonambulo.c)
       return true;
     else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
-      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.f == n.st.sonambulo.c and st.sonambulo.brujula<n.st.sonambulo.brujula)
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula<n.st.sonambulo.brujula)
       return true;
     else
       return false;
@@ -179,7 +179,7 @@ class ComportamientoJugador : public Comportamiento {
 // Nivel 2
 list<Action> DijkstraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
 int Distancia(const nodeN2 &origen, Action accion, const vector<vector<unsigned char>> &mapa);
-bool Find(const list<nodeN2>& lista, const stateN0& obj);
+bool Find(const list<nodeN2>& lista, const nodeN2& obj);
 
 // Nivel 0
 list<Action> AnchuraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
