@@ -55,7 +55,7 @@ struct nodeN1 {
       st.sonambulo.f < n.st.sonambulo.f)
       return true;
     else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
-      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.f < n.st.sonambulo.c)
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c < n.st.sonambulo.c)
       return true;
     else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
       st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula<n.st.sonambulo.brujula)
@@ -73,6 +73,20 @@ struct nodeN2 {
   list<Action> secuencia;
   bool operator<(const nodeN2& n) const {
     return distancia>n.distancia;
+  }
+};
+
+struct nodeN3 {
+  stateN0 st;
+  int g;
+  int h;
+  bool tieneBikini;
+  bool tieneZapatillas;
+  bool tieneBikiniSon;
+  bool tieneZapatillasSon;
+  list<Action> secuencia;
+  bool operator<(const nodeN3& n) const {
+    return (g+h)>(n.g+n.h);
   }
 };
 
@@ -176,6 +190,11 @@ class ComportamientoJugador : public Comportamiento {
     vector<vector<pair<int,int>>> casillasTerreno;
 };
 
+// Nivel 3
+list<Action> AStar(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa, const vector<vector<pair<int,int>>>& casillasTerreno);
+bool Find(const list<nodeN3>& lista, const nodeN3& obj);
+int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned char>> &mapa);
+
 // Nivel 2
 list<Action> DijkstraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
 int Distancia(const nodeN2 &origen, Action accion, const vector<vector<unsigned char>> &mapa);
@@ -194,7 +213,6 @@ bool CasillaTransitable(const ubicacion& x, const vector<vector<unsigned char>>&
 ubicacion NextCasilla(const ubicacion& pos);
 stateN0 apply(Action action, const stateN0& current_state, const vector<vector<unsigned char>>& mapa);
 
-void MatrizAlInfinito(vector<vector<int>> &matriz);
 void AnularMatriz(vector<vector<unsigned char>>& matriz);
 
 #endif
