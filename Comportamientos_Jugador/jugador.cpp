@@ -67,11 +67,13 @@ int DistanciaCartesiana(const ubicacion &origen, const ubicacion &destino)
 	return abs(destino.f - origen.f) + abs(destino.c - origen.c);
 }
 
-int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned char>> &mapa)
+int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned char>> &mapa, bool sonambulo)
 {
 
 	int distancia = 0;
 	unsigned char casilla = mapa[origen.st.jugador.f][origen.st.jugador.c];
+	if (sonambulo)
+		casilla = mapa[origen.st.sonambulo.f][origen.st.sonambulo.c];
 	switch (accion)
 	{
 	case actFORWARD:
@@ -174,10 +176,49 @@ int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned 
 	return distancia;
 }
 
+bool cmpN3(nodeN3 a, nodeN3 n) {
+	stateN0 st = a.st;
+    if (st.jugador.f < n.st.jugador.f)
+      return true;
+    else if(st.jugador.f == n.st.jugador.f and st.jugador.c<n.st.jugador.c)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula < n.st.jugador.brujula)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f < n.st.sonambulo.f)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c < n.st.sonambulo.c)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula<n.st.sonambulo.brujula)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula==n.st.sonambulo.brujula and
+	  a.tieneBikini<n.tieneBikini)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula==n.st.sonambulo.brujula and
+	  a.tieneBikini==n.tieneBikini and a.tieneZapatillas<n.tieneZapatillas)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula==n.st.sonambulo.brujula and
+	  a.tieneBikini==n.tieneBikini and a.tieneZapatillas==n.tieneZapatillas and a.tieneBikiniSon<n.tieneBikiniSon)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+      st.sonambulo.f == n.st.sonambulo.f and st.sonambulo.c == n.st.sonambulo.c and st.sonambulo.brujula==n.st.sonambulo.brujula and
+	  a.tieneBikini==n.tieneBikini and a.tieneZapatillas==n.tieneZapatillas and a.tieneBikiniSon==n.tieneBikiniSon and a.tieneZapatillasSon<n.tieneZapatillasSon)
+      return true;
+    else
+      return false;
+
+}
+
 list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<vector<unsigned char>> &mapa, const vector<vector<pair<int, int>>> &casillasTerreno)
 {
 	list<Action> plan;
-	list<nodeN3> cerrados;
+	// list<nodeN3> cerrados;
+	set<nodeN3, decltype(cmpN3)*>cerrados(cmpN3);	
 	priority_queue<nodeN3> abiertos;
 	nodeN3 actual;
 	actual.g = 0;
@@ -193,13 +234,14 @@ list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<v
 	{
 		actual = abiertos.top();
 		abiertos.pop();
-		// if (actual.st.sonambulo.f==8 and actual.st.sonambulo.c==11 and actual.st.sonambulo.brujula==7)
+		// if (actual.st.sonambulo.f==9 and actual.st.sonambulo.c==23 and actual.st.sonambulo.brujula==3 and EsVisible(actual.st, casillasTerreno))
 		// 	limit = contador;
 		if (contador == limit)
 		{
 			cout << "Actual: " << endl
 				 << actual.st << "g: " << actual.g << " // h: " << actual.h << endl
 				 << endl;
+			cout << "Casilla actual: " << mapa[actual.st.sonambulo.f][actual.st.sonambulo.c] << endl;
 			
 		}
 		// OBJETOS JUGADOR
@@ -213,7 +255,8 @@ list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<v
 				nodeN3 childCogeBikini = actual;
 				childCogeBikini.tieneBikini = true;
 				childCogeBikini.tieneZapatillas = false;
-				if (!Find(cerrados, childCogeBikini))
+				// if (!Find(cerrados, childCogeBikini))
+				if (cerrados.find(childCogeBikini)==cerrados.end())
 					abiertos.push(childCogeBikini);
 			}
 		}
@@ -228,7 +271,7 @@ list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<v
 				nodeN3 childCogeZapatillas = actual;
 				childCogeZapatillas.tieneBikini = false;
 				childCogeZapatillas.tieneZapatillas = true;
-				if (!Find(cerrados, childCogeZapatillas))
+				if (cerrados.find(childCogeZapatillas)==cerrados.end())
 					abiertos.push(childCogeZapatillas);
 			}
 		}
@@ -250,8 +293,8 @@ list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<v
 					}
 					childCogeBikiniSon.tieneBikiniSon = true;
 					childCogeBikiniSon.tieneZapatillasSon = false;
-					if (!Find(cerrados, childCogeBikiniSon))
-						abiertos.push(childCogeBikiniSon);
+					if (cerrados.find(childCogeBikiniSon)==cerrados.end())
+							abiertos.push(childCogeBikiniSon);
 				}
 			}
 			if (mapa[actual.st.sonambulo.f][actual.st.sonambulo.c] == 'D')
@@ -269,7 +312,7 @@ list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<v
 					}
 					childCogeZapatillasSon.tieneBikiniSon = false;
 					childCogeZapatillasSon.tieneZapatillasSon = true;
-					if (!Find(cerrados, childCogeZapatillasSon))
+					if (cerrados.find(childCogeZapatillasSon)==cerrados.end())
 						abiertos.push(childCogeZapatillasSon);
 				}
 			}
@@ -284,113 +327,106 @@ list<Action> AStar(const stateN0 &inicio, const ubicacion &final, const vector<v
 		{
 			nodeN3 childForward = actual;
 			childForward.st = apply(actFORWARD, childForward.st, mapa);
-			childForward.g = actual.g + Distancia(actual, actFORWARD, mapa);
+			childForward.g = actual.g + Distancia(actual, actFORWARD, mapa, false);
 			childForward.h = DistanciaCartesiana(childForward.st.sonambulo, final);
 			childForward.secuencia.push_back(actFORWARD);
-			if (contador == limit)
-			{
-				cout << "childForward: " << endl
-					 << childForward.st << "g: " << childForward.g << " // h: " << childForward.h << endl
-					 << endl;
-			}
-			if (!Find(cerrados, childForward))
+			if (cerrados.find(childForward)==cerrados.end())
 			{
 				// cout << "Mete childForward" << endl;
 				abiertos.push(childForward);
+				if (contador == limit)
+				{
+					cout << "childForward: " << endl
+						<< childForward.st << "g: " << childForward.g << " // h: " << childForward.h << endl
+						<< endl;
+				}
 			}
 			nodeN3 childTurnR = actual;
 			childTurnR.st = apply(actTURN_R, childTurnR.st, mapa);
-			childTurnR.g = actual.g + Distancia(actual, actTURN_R, mapa);
+			childTurnR.g = actual.g + Distancia(actual, actTURN_R, mapa, false);
 			childTurnR.h = DistanciaCartesiana(childTurnR.st.sonambulo, final);
 			childTurnR.secuencia.push_back(actTURN_R);
-			if (contador == limit)
-			{
-				cout << "childTurnR: " << endl
-					 << childTurnR.st << "g: " << childTurnR.g << " // h: " << childTurnR.h << endl
-					 << endl;
-			}
-			if (!Find(cerrados, childTurnR))
+			if (cerrados.find(childTurnR)==cerrados.end())
 			{
 				// cout << "Mete childTurnR" << endl;
 				abiertos.push(childTurnR);
+				if (contador == limit)
+				{
+					cout << "childTurnR: " << endl
+						<< childTurnR.st << "g: " << childTurnR.g << " // h: " << childTurnR.h << endl
+						<< endl;
+				}
 			}
 			nodeN3 childTurnL = actual;
 			childTurnL.st = apply(actTURN_L, childTurnL.st, mapa);
-			childTurnL.g = actual.g + Distancia(actual, actTURN_L, mapa);
+			childTurnL.g = actual.g + Distancia(actual, actTURN_L, mapa, false);
 			childTurnL.h = DistanciaCartesiana(childTurnL.st.sonambulo, final);
 			childTurnL.secuencia.push_back(actTURN_L);
-			if (contador == limit)
-			{
-				cout << "childTurnR: " << endl
-					 << childTurnR.st << "g: " << childTurnR.g << " // h: " << childTurnR.h << endl
-					 << endl;
-			}
-			if (!Find(cerrados, childTurnL))
+			if (cerrados.find(childTurnL)==cerrados.end())
 			{
 				// cout << "Mete childTurnL" << endl;
 				abiertos.push(childTurnL);
+				if (contador == limit)
+				{
+					cout << "childTurnL: " << endl
+						<< childTurnL.st << "g: " << childTurnL.g << " // h: " << childTurnL.h << endl
+						<< endl;
+				}
 			}
 			if (EsVisible(actual.st, casillasTerreno))
 			{
 				nodeN3 childForwardSon = actual;
 				childForwardSon.st = apply(actSON_FORWARD, childForwardSon.st, mapa);
-				childForwardSon.g = actual.g + Distancia(actual, actSON_FORWARD, mapa);
+				childForwardSon.g = actual.g + Distancia(actual, actSON_FORWARD, mapa, true);
 				childForwardSon.h = DistanciaCartesiana(childForwardSon.st.sonambulo, final);
 				childForwardSon.secuencia.push_back(actSON_FORWARD);
-				if (contador == limit)
-				{
-					cout << "childForwardSon: " << endl
-						 << childForwardSon.st << "g: " << childForwardSon.g << " // h: " << childForwardSon.h << endl
-						 << endl;
-				}
-				if (!Find(cerrados, childForwardSon))
+				if (cerrados.find(childForwardSon)==cerrados.end())
 				{
 					// cout << "Mete childForwardSon" << endl;
 					abiertos.push(childForwardSon);
+					if (contador == limit)
+					{
+						cout << "childForwardSon: " << endl
+							<< childForwardSon.st << "g: " << childForwardSon.g << " // h: " << childForwardSon.h << endl
+							<< endl;
+					}
 				}
 				nodeN3 childTurnLSon = actual;
 				childTurnLSon.st = apply(actSON_TURN_SL, childTurnLSon.st, mapa);
-				childTurnLSon.g = actual.g + Distancia(actual, actSON_TURN_SL, mapa);
+				childTurnLSon.g = actual.g + Distancia(actual, actSON_TURN_SL, mapa, true);
+				// cout << "childTurnLSon.g " << childTurnLSon.g << endl;
 				childTurnLSon.h = DistanciaCartesiana(childTurnLSon.st.sonambulo, final);
 				childTurnLSon.secuencia.push_back(actSON_TURN_SL);
-				if (contador == limit)
-				{
-					cout << "childTurnLSon: " << endl
-						 << childTurnLSon.st << "g: " << childTurnLSon.g << " // h: " << childTurnLSon.h << endl
-						 << endl;
-				}
-				if (!Find(cerrados, childTurnLSon))
+				if (cerrados.find(childTurnLSon)==cerrados.end())
 				{
 					// cout << "Mete childTurnLSon" << endl;
 					abiertos.push(childTurnLSon);
+					if (contador == limit)
+					{
+						cout << "childTurnLSon: " << endl
+							<< childTurnLSon.st << "g: " << childTurnLSon.g << " // h: " << childTurnLSon.h << endl
+							<< endl;
+					}
 				}
 				nodeN3 childTurnRSon = actual;
 				childTurnRSon.st = apply(actSON_TURN_SR, childTurnRSon.st, mapa);
-				childTurnRSon.g = actual.g + Distancia(actual, actSON_TURN_SR, mapa);
+				childTurnRSon.g = actual.g + Distancia(actual, actSON_TURN_SR, mapa, true);
 				childTurnRSon.h = DistanciaCartesiana(childTurnRSon.st.sonambulo, final);
 				childTurnRSon.secuencia.push_back(actSON_TURN_SR);
-				if (contador == limit)
-				{
-					cout << "childTurnRSon: " << endl
-						 << childTurnRSon.st << "g: " << childTurnRSon.g << " // h: " << childTurnRSon.h << endl
-						 << endl;
-					
-					// auto it = cerrados.begin();
-					// while (it != cerrados.end() and (!(it->st == childTurnRSon.st) or (it->st.sonambulo.brujula!=childTurnRSon.st.sonambulo.brujula) or (it->tieneBikini != childTurnRSon.tieneBikini) or (it->tieneZapatillas != childTurnRSon.tieneZapatillas) or
-					// 							(it->tieneBikiniSon != childTurnRSon.tieneBikiniSon) or (it->tieneZapatillasSon != childTurnRSon.tieneZapatillasSon)))
-					// 	++it;
-					// cout << "Find(childTurnRSon): " << endl
-					// 	 <<  it->st << "g: " << it->g << " // h: " << it->h << endl
-					// 	 << endl;
-				}
-				if (!Find(cerrados, childTurnRSon))
+				if (cerrados.find(childTurnRSon)==cerrados.end())
 				{
 					// cout << "Mete childTurnRSon" << endl;
 					abiertos.push(childTurnRSon);
+					if (contador == limit)
+					{
+						cout << "childTurnRSon: " << endl
+							<< childTurnRSon.st << "g: " << childTurnRSon.g << " // h: " << childTurnRSon.h << endl
+							<< endl;
+					}
 				}
 			}
 		}
-		cerrados.push_back(actual);
+		cerrados.insert(actual);
 		if (contador == limit)
 		{
 			cout << "Termina" << endl;
@@ -585,10 +621,29 @@ void print_queue(priority_queue<nodeN2> q)
 	cout << endl;
 }
 
+bool cmpN2(nodeN2 a, nodeN2 n) {
+	stateN0 st = a.st;
+    if (st.jugador.f < n.st.jugador.f)
+      return true;
+    else if(st.jugador.f == n.st.jugador.f and st.jugador.c<n.st.jugador.c)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula < n.st.jugador.brujula)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+	  a.tieneBikini<n.tieneBikini)
+      return true;
+    else if (st.jugador.f == n.st.jugador.f and st.jugador.c==n.st.jugador.c and st.jugador.brujula == n.st.jugador.brujula and
+	  a.tieneBikini==n.tieneBikini and a.tieneZapatillas<n.tieneZapatillas)
+      return true;
+    else
+      return false;
+}
+
 list<Action> DijkstraSoloJugador(const stateN0 &inicio, const ubicacion &final, const vector<vector<unsigned char>> &mapa)
 {
 	list<Action> plan;
-	list<nodeN2> cerrados;
+	// list<nodeN2> cerrados;
+	set<nodeN2, decltype(cmpN2)*>cerrados(cmpN2);	
 	priority_queue<nodeN2> abiertos;
 	nodeN2 actual;
 	actual.distancia = 0;
@@ -620,8 +675,13 @@ list<Action> DijkstraSoloJugador(const stateN0 &inicio, const ubicacion &final, 
 				nodeN2 childCogeBikini = actual;
 				childCogeBikini.tieneBikini = true;
 				childCogeBikini.tieneZapatillas = false;
-				if (!Find(cerrados, childCogeBikini))
+				// if (!Find(cerrados, childCogeBikini))
+				if (cerrados.find(childCogeBikini)==cerrados.end()) {
 					abiertos.push(childCogeBikini);
+					if (cont == limit) {
+						cout << "childCogeBikini: " << childCogeBikini .st.jugador << endl;
+					}
+				}
 			}
 		}
 		if (mapa[actual.st.jugador.f][actual.st.jugador.c] == 'D')
@@ -635,12 +695,20 @@ list<Action> DijkstraSoloJugador(const stateN0 &inicio, const ubicacion &final, 
 				nodeN2 childCogeZapatillas = actual;
 				childCogeZapatillas.tieneBikini = false;
 				childCogeZapatillas.tieneZapatillas = true;
-				if (!Find(cerrados, childCogeZapatillas))
+				// if (!Find(cerrados, childCogeZapatillas))
+				if (cerrados.find(childCogeZapatillas)==cerrados.end()) {
 					abiertos.push(childCogeZapatillas);
+					if (cont == limit) {
+						cout << "childCogeZapatillas: " << childCogeZapatillas .st.jugador << endl;
+					}
+				}
 			}
 		}
 		abiertos.pop();
-		cerrados.push_back(actual);
+		cerrados.insert(actual);
+		// cout << "Cerrados.find(actual) " << endl << cerrados.find(actual)->st.jugador << endl;
+		
+		// cerrados.push(actual);
 		fin = (actual.st.jugador.f == final.f and actual.st.jugador.c == final.c);
 		if (fin)
 		{
@@ -651,40 +719,40 @@ list<Action> DijkstraSoloJugador(const stateN0 &inicio, const ubicacion &final, 
 			// Hijo actFORWARD
 			nodeN2 childForward = actual;
 			childForward.st = apply(actFORWARD, actual.st, mapa);
-			if (cont == limit)
-				cout << "childForward: " << endl
-					 << childForward.st.jugador << endl;
-			if (!Find(cerrados, childForward))
+			if (cerrados.find(childForward)==cerrados.end())
 			{
 				childForward.distancia += Distancia(actual, actFORWARD, mapa);
 				childForward.secuencia.push_back(actFORWARD);
 				abiertos.push(childForward);
+				if (cont == limit)
+					cout << "childForward: " << endl
+						<< childForward.st.jugador << endl;
 			}
 			// Hijo actTURNL
 			nodeN2 childTurnL = actual;
 			childTurnL.st = apply(actTURN_L, actual.st, mapa);
-			if (cont == limit)
-				cout << "childTurnL: " << endl
-					 << childTurnL.st.jugador << endl;
-			if (!Find(cerrados, childTurnL))
+			if (cerrados.find(childTurnL)==cerrados.end())
 			{
 				childTurnL.distancia += Distancia(actual, actTURN_L, mapa);
 				// cout << "Distancia hijo childTurnL: " << childTurnL.distancia << endl;
 				childTurnL.secuencia.push_back(actTURN_L);
 				abiertos.push(childTurnL);
+				if (cont == limit)
+					cout << "childTurnL: " << endl
+						<< childTurnL.st.jugador << endl;
 			}
 			// Hijo actTURNR
 			nodeN2 childTurnR = actual;
 			childTurnR.st = apply(actTURN_R, actual.st, mapa);
-			if (cont == limit)
-				cout << "childTurnR: " << endl
-					 << childTurnR.st.jugador << endl;
-			if (!Find(cerrados, childTurnR))
+			if (cerrados.find(childTurnR)==cerrados.end())
 			{
 				childTurnR.distancia += Distancia(actual, actTURN_R, mapa);
 				// cout << "Distancia hijo childTurnR: " << childTurnR.distancia << endl;
 				childTurnR.secuencia.push_back(actTURN_R);
 				abiertos.push(childTurnR);
+				if (cont == limit)
+					cout << "childTurnR: " << endl
+						<< childTurnR.st.jugador << endl;
 			}
 		}
 		if (cont == limit)

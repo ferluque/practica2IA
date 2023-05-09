@@ -193,7 +193,7 @@ class ComportamientoJugador : public Comportamiento {
 // Nivel 3
 list<Action> AStar(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa, const vector<vector<pair<int,int>>>& casillasTerreno);
 bool Find(const list<nodeN3>& lista, const nodeN3& obj);
-int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned char>> &mapa);
+int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned char>> &mapa, bool sonambulo);
 
 // Nivel 2
 list<Action> DijkstraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
