@@ -90,6 +90,12 @@ struct nodeN3 {
   }
 };
 
+struct stateN4 {
+  ubicacion jugador;
+  ubicacion sonambulo;
+  bool bienSituado;
+};
+
 ostream& operator<<(ostream& out, const stateN0& x);
 
 class ComportamientoJugador : public Comportamiento {
@@ -178,12 +184,16 @@ class ComportamientoJugador : public Comportamiento {
     Action think(Sensores sensores);
     int interact(Action accion, int valor);
 
+    // NIVEL 4
+    void Nivel4(Sensores sensores);
 
   private:
     // Declarar Variables de Estado
     list<Action> plan;
     bool hayPlan;
     stateN0 current_state;
+    stateN4 current_stateN4;
+    Action last_action;
     ubicacion goal;
     void VisualizaPlan(const stateN0& st, const list<Action>& plan);
     // Vector para saber de forma intuitiva cuáles son las casillas del mapa (fila, columna) que tiene el agente en su visión
@@ -208,6 +218,20 @@ bool Find(const list<nodeN0>& lista, const stateN0& obj);
 // Nivel 1
 list<Action> AnchuraSonambulo(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa, const vector<vector<pair<int,int>>>& casillasTerreno);
 bool EsVisible(const stateN0& st, const vector<vector<pair<int,int>>>& casillasTerreno);
+
+// Nivel 2
+list<Action> DijkstraSoloJugador(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa);
+int Distancia(const nodeN2 &origen, Action accion, const vector<vector<unsigned char>> &mapa);
+bool Find(const list<nodeN2>& lista, const nodeN2& obj);
+
+// Nivel 3
+list<Action> AStar(const stateN0& inicio, const ubicacion& final, const vector<vector<unsigned char>>& mapa, const vector<vector<pair<int,int>>>& casillasTerreno);
+bool Find(const list<nodeN3>& lista, const nodeN3& obj);
+int Distancia(const nodeN3 &origen, Action accion, const vector<vector<unsigned char>> &mapa);
+int DistanciaCartesiana(const ubicacion &origen, const ubicacion &destino);
+
+// Nivel 4
+void rellenaMapa(const vector<unsigned char> &terreno, vector<vector<unsigned char>> &mapa, const stateN4 &st, const vector<vector<pair<int, int>>> &casillasTerreno, const Sensores &sensores);
 
 bool CasillaTransitable(const ubicacion& x, const vector<vector<unsigned char>>& mapa);
 ubicacion NextCasilla(const ubicacion& pos);
